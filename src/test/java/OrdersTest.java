@@ -1,4 +1,5 @@
 import config.Config;
+import config.Endpoints; // Импортируем класс с константами
 import io.qameta.allure.*;
 import org.junit.Test;
 import static io.restassured.RestAssured.given;
@@ -6,8 +7,6 @@ import static org.hamcrest.Matchers.*;
 
 @Feature("Заказы")
 public class OrdersTest {
-
-    private static final String ORDERS_ENDPOINT = "/api/v1/orders";
 
     @Test
     @Story("Получение списка заказов")
@@ -17,12 +16,11 @@ public class OrdersTest {
         given()
                 .baseUri(Config.BASE_URL)
                 .when()
-                .get(ORDERS_ENDPOINT)
+                .get(Endpoints.ORDERS_LIST) // Используем константу
                 .then()
                 .statusCode(200)
                 .body("orders", not(empty()));
     }
-
 
     @Test
     @Story("Фильтрация заказов по метро")
@@ -33,7 +31,7 @@ public class OrdersTest {
                 .baseUri(Config.BASE_URL)
                 .queryParam("nearestStation", "[\"1\", \"2\"]")
                 .when()
-                .get(ORDERS_ENDPOINT)
+                .get(Endpoints.ORDERS_LIST) // Используем константу
                 .then()
                 .statusCode(200)
                 .body("orders", not(empty()));
@@ -49,7 +47,7 @@ public class OrdersTest {
                 .queryParam("limit", 10)
                 .queryParam("page", 0)
                 .when()
-                .get(ORDERS_ENDPOINT)
+                .get(Endpoints.ORDERS_LIST) // Используем константу
                 .then()
                 .statusCode(200)
                 .body("orders.size()", lessThanOrEqualTo(10));
@@ -64,7 +62,7 @@ public class OrdersTest {
                 .baseUri(Config.BASE_URL)
                 .queryParam("courierId", 9999)
                 .when()
-                .get(ORDERS_ENDPOINT)
+                .get(Endpoints.ORDERS_LIST) // Используем константу
                 .then()
                 .statusCode(404)
                 .body("message", equalTo("Курьер с идентификатором 9999 не найден"));

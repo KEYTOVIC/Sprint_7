@@ -1,4 +1,5 @@
 import config.Config;
+import config.Endpoints; // Импортируем класс с константами
 import io.qameta.allure.*;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -46,19 +47,18 @@ public class OrderCreateTests {
     @Severity(SeverityLevel.CRITICAL)
     public void createOrderTest() {
         Map<String, Object> order = buildOrder(color);
-            Response response = RestAssured.given()
-                    .contentType(JSON)
-                    .body(order)
-                    .when()
-                    .post("/api/v1/orders");
+        Response response = RestAssured.given()
+                .contentType(JSON)
+                .body(order)
+                .when()
+                .post(Endpoints.ORDERS_CREATE); // Используем константу
 
-            response.then().statusCode(201);
+        response.then().statusCode(201);
 
-            int track = response.jsonPath().getInt("track");
-            Assert.assertTrue("Track должен присутствовать в ответе", track > 0);
+        int track = response.jsonPath().getInt("track");
+        Assert.assertTrue("Track должен присутствовать в ответе", track > 0);
 
-            Allure.addAttachment("Response", "application/json", response.getBody().asPrettyString());
-
+        Allure.addAttachment("Response", "application/json", response.getBody().asPrettyString());
     }
 
     @Step("Формирование тела заказа с цветами: {0}")

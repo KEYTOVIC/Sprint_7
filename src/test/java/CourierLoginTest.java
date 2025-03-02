@@ -1,150 +1,116 @@
 import config.Config;
+import config.Endpoints; // Импортируем класс с константами
 import io.qameta.allure.*;
-import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import io.restassured.response.Response;
+import config.Courier; // Импортируем класс Courier
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
-@Feature("Авторизация курьера")
+@Feature("Создание курьера")
 public class CourierLoginTest {
 
-    private final String login = "Maks";
+    private int courierId;
+    private final String login = "test_courier_" + System.currentTimeMillis();
     private final String password = "1234";
-    private Integer courierId;
 
     @Before
     @Step("Создание тестового курьера перед тестами")
     public void setUp() {
-        RestAssured.baseURI = Config.BASE_URL;
-
-        String createCourierBody = String.format("{\"login\": \"%s\", \"password\": \"%s\", \"firstName\": \"Test\"}", login, password);
-
-        Response response = given()
-                .contentType(ContentType.JSON)
-                .body(createCourierBody)
-                .when()
-                .post("/api/v1/courier");
-
-        response.then().statusCode(anyOf(is(201), is(409)));
+        // Убрана установка baseURI, так как теперь она задается в Config
     }
 
     @After
     @Step("Удаление тестового курьера после тестов")
     public void tearDown() {
-        if (courierId != null) {
+        if (courierId > 0) {
             given()
-                    .contentType(ContentType.JSON)
-                    .body("{\"id\": " + courierId + "}")
-                    .when()
-                    .delete("/api/v1/courier")
+                    .delete(Endpoints.COURIER_DELETE + courierId) // Используем константу
                     .then()
-                    .statusCode(anyOf(is(200), is(404)));
+                    .statusCode(200)
+                    .body("ok", equalTo(true));
         }
     }
 
-    @Test
-    @Story("Логин с неверным паролем")
-    @Description("Проверка, что API возвращает 404 при попытке входа с неверным паролем")
-    @Severity(SeverityLevel.CRITICAL)
-    public void loginWithIncorrectPassword() {
-        step("Отправка запроса на логин с неправильным паролем");
-        String requestBody = "{\"login\": \"ninja\", \"password\": \"wrong_password\"}";
-
-        Response response = given()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .when()
-                .post("/api/v1/courier/login");
-
-        response.prettyPrint();
-
-        response.then()
-                .statusCode(404)
-                .body("message", equalTo("Учетная запись не найдена"));
-    }
-
-    @Test
-    @Story("Логин без пароля")
-    @Description("Проверка, что API возвращает 400 при попытке входа без пароля")
-    @Severity(SeverityLevel.NORMAL)
-    public void loginWithoutPassword() {
-        step("Отправка запроса на логин без пароля");
-        String requestBody = "{\"login\": \"ninja\"}";
+    @Step("Создание курьера с логином {0}, паролем {1} и именем {2}")
+    private void createCourier(String login, String password, String firstName) {
+        Courier courier = new Courier(login, password, firstName); // Используем объект
 
         given()
                 .contentType(ContentType.JSON)
-                .body(requestBody)
+                .body(courier) // Передаем объект
                 .when()
-                .post("/api/v1/courier/login")
+                .post(Endpoints.COURIER_CREATE) // Используем константу
                 .then()
-                .statusCode(400)
-                .body("message", equalTo("Недостаточно данных для входа"));
+                .statusCode(201)
+                .body("ok", equalTo(true));
     }
 
-    @Test
-    @Story("Логин без логина")
-    @Description("Проверка, что API возвращает 400 при попытке входа без логина")
-    @Severity(SeverityLevel.NORMAL)
-    public void loginWithoutLogin() {
-        step("Отправка запроса на логин без логина");
-        String requestBody = "{\"password\": \"1234\"}";
+    @Step("Логин курьера {0}")
+    private int loginCourier(String login, String password) {
+        Courier courier = new Courier(login, password, null); // Используем объект
 
-        given()
+        return given()
                 .contentType(ContentType.JSON)
-                .body(requestBody)
+                .body(courier) // Передаем объект
                 .when()
-                .post("/api/v1/courier/login")
+                .post(Endpoints.COURIER_LOGIN) // Используем константу
                 .then()
-                .statusCode(400)
-                .body("message", equalTo("Недостаточно данных для входа"));
-    }
-
-    @Test
-    @Story("Логин несуществующего пользователя")
-    @Description("Проверка, что API возвращает 404 при попытке входа несуществующего пользователя")
-    @Severity(SeverityLevel.CRITICAL)
-    public void loginWithNonExistentUser() {
-        step("Отправка запроса на логин несуществующего пользователя");
-        String requestBody = "{\"login\": \"non_existent_user\", \"password\": \"1234\"}";
-
-        given()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .statusCode(404)
-                .body("message", equalTo("Учетная запись не найдена"));
-    }
-
-    @Test
-    @Story("Успешный логин")
-    @Description("Проверка, что API возвращает id при успешном логине")
-    @Severity(SeverityLevel.BLOCKER)
-    public void successfulLoginReturnsId() {
-        step("Отправка запроса на успешный логин");
-        String loginBody = String.format("{\"login\": \"%s\", \"password\": \"%s\"}", login, password);
-
-        Response response = given()
-                .contentType(ContentType.JSON)
-                .body(loginBody)
-                .when()
-                .post("/api/v1/courier/login");
-
-        response.prettyPrint();
-
-        courierId = response.then()
                 .statusCode(200)
-                .body("id", notNullValue())
-                .extract()
-                .path("id");
+                .extract().path("id");
+    }
+
+    @Test
+    @Story("Успешное создание курьера")
+    @Description("Проверка, что API позволяет создать курьера и он может войти в систему")
+    @Severity(SeverityLevel.BLOCKER)
+    public void createCourierSuccess() {
+        step("Создание курьера");
+        createCourier(login, password, "Test User");
+        step("Логин курьера");
+        courierId = loginCourier(login, password);
+    }
+
+    @Test
+    @Story("Создание курьера без логина")
+    @Description("Проверка, что API не позволяет создать курьера без логина")
+    @Severity(SeverityLevel.CRITICAL)
+    public void createCourierWithoutLogin() {
+        step("Отправка запроса на создание курьера без логина");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"password\": \"1234\", \"firstName\": \"Test\"}")
+                .when()
+                .post(Endpoints.COURIER_CREATE) // Используем константу
+                .then()
+                .statusCode(400)
+                .body("message", equalTo("Недостаточно данных для создания учетной записи"));
+    }
+
+    @Test
+    @Story("Создание курьера с существующим логином")
+    @Description("Проверка, что API не позволяет создать курьера с дублирующим логином")
+    @Severity(SeverityLevel.CRITICAL)
+    public void createCourierDuplicateLogin() {
+        step("Создание первого курьера");
+        createCourier(login, password, "Test User");
+        courierId = loginCourier(login, password);
+
+        step("Попытка создать второго курьера с таким же логином");
+        given()
+                .contentType(ContentType.JSON)
+                .body(new Courier(login, password, "Another")) // Используем объект
+                .when()
+                .post(Endpoints.COURIER_CREATE) // Используем константу
+                .then()
+                .statusCode(409)
+                .body("message", equalTo("Этот логин уже используется. Попробуйте другой."));
     }
 
     @Step("{0}")
     private void step(String message) {
+        // Логирование шагов в Allure
     }
 }

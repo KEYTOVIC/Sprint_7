@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: CourierCreateTests
 -------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.629 s - in CourierCreateTests
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.745 s - in CourierCreateTests

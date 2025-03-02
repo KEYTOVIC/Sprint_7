@@ -1,5 +1,8 @@
+api\CourierApiClient.class
 config\Config.class
 CourierCreateTests.class
 OrdersTest.class
 CourierLoginTest.class
+config\Courier.class
+config\Endpoints.class
 OrderCreateTests.class

@@ -1,18 +1,20 @@
+import api.CourierApiClient; // Импортируем класс для работы с API
 import config.Config;
+import config.Endpoints;
 import io.qameta.allure.*;
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import config.Courier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
-@Feature("Создание курьера") // Группировка тестов
+@Feature("Создание курьера")
 public class CourierCreateTests {
 
     private int courierId;
-    private final String login = "test_courier_" + System.currentTimeMillis(); // Уникальный логин
+    private final String login = "test_courier_" + System.currentTimeMillis();
     private final String password = "1234";
 
     @Before
@@ -25,8 +27,7 @@ public class CourierCreateTests {
     @Step("Удаление тестового курьера после тестов")
     public void tearDown() {
         if (courierId > 0) {
-            given()
-                    .delete("/api/v1/courier/" + courierId)
+            CourierApiClient.deleteCourier(courierId) // Используем метод из CourierApiClient
                     .then()
                     .statusCode(200)
                     .body("ok", equalTo(true));
@@ -35,11 +36,9 @@ public class CourierCreateTests {
 
     @Step("Создание курьера с логином {0}, паролем {1} и именем {2}")
     private void createCourier(String login, String password, String firstName) {
-        given()
-                .contentType(ContentType.JSON)
-                .body(String.format("{\"login\": \"%s\", \"password\": \"%s\", \"firstName\": \"%s\"}", login, password, firstName))
-                .when()
-                .post("/api/v1/courier")
+        Courier courier = new Courier(login, password, firstName);
+
+        CourierApiClient.createCourier(courier) // Используем метод из CourierApiClient
                 .then()
                 .statusCode(201)
                 .body("ok", equalTo(true));
@@ -47,11 +46,9 @@ public class CourierCreateTests {
 
     @Step("Логин курьера {0}")
     private int loginCourier(String login, String password) {
-        return given()
-                .contentType(ContentType.JSON)
-                .body(String.format("{\"login\": \"%s\", \"password\": \"%s\"}", login, password))
-                .when()
-                .post("/api/v1/courier/login")
+        Courier courier = new Courier(login, password, null);
+
+        return CourierApiClient.loginCourier(courier) // Используем метод из CourierApiClient
                 .then()
                 .statusCode(200)
                 .extract().path("id");
@@ -74,11 +71,9 @@ public class CourierCreateTests {
     @Severity(SeverityLevel.CRITICAL)
     public void createCourierWithoutLogin() {
         step("Отправка запроса на создание курьера без логина");
-        given()
-                .contentType(ContentType.JSON)
-                .body("{\"password\": \"1234\", \"firstName\": \"Test\"}")
-                .when()
-                .post("/api/v1/courier")
+        Courier courier = new Courier(null, "1234", "Test"); // Логин отсутствует
+
+        CourierApiClient.createCourier(courier) // Используем метод из CourierApiClient
                 .then()
                 .statusCode(400)
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
@@ -94,11 +89,9 @@ public class CourierCreateTests {
         courierId = loginCourier(login, password);
 
         step("Попытка создать второго курьера с таким же логином");
-        given()
-                .contentType(ContentType.JSON)
-                .body(String.format("{\"login\": \"%s\", \"password\": \"%s\", \"firstName\": \"Another\"}", login, password))
-                .when()
-                .post("/api/v1/courier")
+        Courier duplicateCourier = new Courier(login, password, "Another");
+
+        CourierApiClient.createCourier(duplicateCourier) // Используем метод из CourierApiClient
                 .then()
                 .statusCode(409)
                 .body("message", equalTo("Этот логин уже используется. Попробуйте другой."));
